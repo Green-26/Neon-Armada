@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>🚀 NEON ARMADA - Galactic Defender 🚀</title>
+    <title>⚡ NEON ARMADA - Progressive Difficulty ⚡</title>
     <style>
         * {
             user-select: none;
@@ -49,6 +49,8 @@
             border: 1px solid cyan;
             color: #0ff;
             text-shadow: 0 0 4px #0ff;
+            flex-wrap: wrap;
+            gap: 10px;
         }
 
         .stats {
@@ -56,6 +58,30 @@
             gap: 32px;
             font-size: 1.5rem;
             letter-spacing: 2px;
+        }
+
+        .difficulty-meter {
+            background: #000000aa;
+            padding: 6px 15px;
+            border-radius: 20px;
+            border-left: 3px solid #ff0;
+        }
+
+        .difficulty-bar {
+            width: 150px;
+            height: 8px;
+            background: #333;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .difficulty-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #0f0, #ff0, #f00);
+            transition: width 0.3s;
+            border-radius: 10px;
         }
 
         .controls-hint {
@@ -88,7 +114,9 @@
         @media (max-width: 780px) {
             .stats { gap: 16px; font-size: 1rem; }
             .controls-hint { font-size: 0.6rem; }
-            .info-panel { flex-wrap: wrap; justify-content: center; gap: 8px; }
+            .info-panel { flex-direction: column; align-items: center; }
+            .difficulty-meter { width: 100%; text-align: center; }
+            .difficulty-bar { width: 100%; }
         }
     </style>
 </head>
@@ -99,6 +127,13 @@
             <span>💥 SCORE: <span id="scoreValue">0</span></span>
             <span>🏆 HIGH: <span id="highScoreValue">0</span></span>
             <span>❤️ LIVES: <span id="livesValue">3</span></span>
+            <span>🔥 KILLS: <span id="killsValue">0</span></span>
+        </div>
+        <div class="difficulty-meter">
+            <div>📈 DIFFICULTY: <span id="difficultyLevel">EASY</span></div>
+            <div class="difficulty-bar">
+                <div class="difficulty-fill" id="difficultyFill"></div>
+            </div>
         </div>
         <div class="controls-hint">
             🎮 ← → / A D &nbsp;&nbsp;|&nbsp;&nbsp;🔫 SPACE &nbsp;&nbsp;|&nbsp;&nbsp;⏸️ P
@@ -133,6 +168,7 @@
         
         // ========== GAME STATE ==========
         let score = 0;
+        let totalKills = 0;  // Track enemy kills for difficulty
         let highScore = localStorage.getItem('neonHighScore') ? parseInt(localStorage.getItem('neonHighScore')) : 0;
         let gameOver = false;
         let paused = false;
@@ -141,18 +177,22 @@
         const scoreSpan = document.getElementById('scoreValue');
         const highScoreSpan = document.getElementById('highScoreValue');
         const livesSpan = document.getElementById('livesValue');
+        const killsSpan = document.getElementById('killsValue');
+        const difficultyLevelSpan = document.getElementById('difficultyLevel');
+        const difficultyFill = document.getElementById('difficultyFill');
         
         // ========== PROJECTILES ==========
         let bullets = [];
         const BULLET_W = 5, BULLET_H = 12;
         let shootCooldown = 0;
-        const SHOOT_DELAY_FRAMES = 12;
+        let baseShootDelay = 15;  // Starts slower, gets faster
         
         // ========== ENEMIES ==========
         let enemies = [];
         const ENEMY_W = 34, ENEMY_H = 28;
         let enemySpawnCounter = 0;
-        let enemySpawnDelay = 28;
+        let baseSpawnDelay = 45;  // Starts with fewer enemies
+        let currentSpawnDelay = 45;
         
         // ========== PARTICLES ==========
         let particles = [];
@@ -160,6 +200,10 @@
         // ========== CONTROLS ==========
         let moveLeft = false, moveRight = false;
         let shootRequest = false;
+        
+        // ========== DIFFICULTY TRACKING ==========
+        let currentDifficulty = "EASY";
+        let difficultyPercent = 0;
         
         // ========== AUDIO ==========
         let audioCtx = null;
@@ -184,11 +228,60 @@
             osc.stop(now + duration);
         }
         
+        // ========== DIFFICULTY CALCULATION ==========
+        function updateDifficulty() {
+            // Difficulty scales with kills (0 to 50 kills = easy to insane)
+            if(totalKills < 15) {
+                currentDifficulty = "🌿 EASY";
+                difficultyPercent = (totalKills / 15) * 25;
+                baseSpawnDelay = 45 - Math.floor(totalKills / 2);
+                baseShootDelay = 15 - Math.floor(totalKills / 8);
+            } 
+            else if(totalKills < 35) {
+                currentDifficulty = "⚡ MEDIUM";
+                difficultyPercent = 25 + ((totalKills - 15) / 20) * 25;
+                baseSpawnDelay = 38 - Math.floor((totalKills - 15) / 2);
+                baseShootDelay = 12 - Math.floor((totalKills - 15) / 10);
+            }
+            else if(totalKills < 60) {
+                currentDifficulty = "🔥 HARD";
+                difficultyPercent = 50 + ((totalKills - 35) / 25) * 25;
+                baseSpawnDelay = 30 - Math.floor((totalKills - 35) / 3);
+                baseShootDelay = 10 - Math.floor((totalKills - 35) / 12);
+            }
+            else if(totalKills < 100) {
+                currentDifficulty = "💀 INSANE";
+                difficultyPercent = 75 + ((totalKills - 60) / 40) * 25;
+                baseSpawnDelay = 22 - Math.floor((totalKills - 60) / 5);
+                baseShootDelay = 8 - Math.floor((totalKills - 60) / 15);
+            }
+            else {
+                currentDifficulty = "👹 HELL MODE";
+                difficultyPercent = 100;
+                baseSpawnDelay = Math.max(12, 18 - Math.floor((totalKills - 100) / 15));
+                baseShootDelay = Math.max(5, 7 - Math.floor((totalKills - 100) / 25));
+            }
+            
+            // Keep within limits
+            baseSpawnDelay = Math.max(12, Math.min(45, baseSpawnDelay));
+            baseShootDelay = Math.max(5, Math.min(15, baseShootDelay));
+            currentSpawnDelay = baseSpawnDelay;
+            
+            // Update UI
+            difficultyLevelSpan.innerText = currentDifficulty;
+            difficultyFill.style.width = difficultyPercent + "%";
+            
+            // Change enemy color based on difficulty
+            return difficultyPercent;
+        }
+        
         // ========== UI HELPERS ==========
         function updateUI() {
             scoreSpan.innerText = score;
             highScoreSpan.innerText = highScore;
             livesSpan.innerText = lives;
+            killsSpan.innerText = totalKills;
+            updateDifficulty();
         }
         
         function setHighScore() {
@@ -201,28 +294,34 @@
         
         // ========== GAME MECHANICS ==========
         function spawnEnemy() {
+            let difficultyBonus = Math.min(3, Math.floor(totalKills / 30));
             let x = Math.random() * (W - ENEMY_W);
+            let speedVariation = 1.5 + Math.random() * 2.5;
+            let baseSpeed = 2.0 + (difficultyPercent / 50);
+            
             enemies.push({
                 x: x,
                 y: -ENEMY_H,
                 w: ENEMY_W,
                 h: ENEMY_H,
-                speedY: 2.5 + Math.random() * 2.2
+                speedY: baseSpeed + (Math.random() * speedVariation),
+                killsWhenSpawned: totalKills  // Track difficulty at spawn time
             });
         }
         
-        function addExplosion(x, y) {
-            for(let i = 0; i < 12; i++) {
+        function addExplosion(x, y, isBig = false) {
+            let particleCount = isBig ? 20 : 12;
+            for(let i = 0; i < particleCount; i++) {
                 particles.push({
                     x: x + Math.random() * 30,
                     y: y + Math.random() * 30,
-                    vx: (Math.random() - 0.5) * 5,
-                    vy: (Math.random() - 0.5) * 5 - 1.5,
-                    life: 20,
-                    size: 3 + Math.random() * 4
+                    vx: (Math.random() - 0.5) * (isBig ? 7 : 5),
+                    vy: (Math.random() - 0.5) * (isBig ? 7 : 5) - 1.5,
+                    life: isBig ? 25 : 20,
+                    size: 3 + Math.random() * (isBig ? 6 : 4)
                 });
             }
-            playSound('explode', 220, 0.2);
+            playSound('explode', isBig ? 150 : 220, isBig ? 0.3 : 0.2);
         }
         
         function resetGame() {
@@ -230,17 +329,20 @@
             paused = false;
             lives = 3;
             score = 0;
+            totalKills = 0;
             bullets = [];
             enemies = [];
             particles = [];
             invincibleFrames = 0;
             shootCooldown = 0;
             playerX = W/2 - PLAYER_WIDTH/2;
-            enemySpawnDelay = 28;
+            baseSpawnDelay = 45;
+            currentSpawnDelay = 45;
+            baseShootDelay = 15;
             updateUI();
             setHighScore();
-            // Spawn initial enemies
-            for(let i = 0; i < 3; i++) spawnEnemy();
+            // Spawn initial enemies (easier start)
+            for(let i = 0; i < 2; i++) spawnEnemy();
         }
         
         function playerHit() {
@@ -251,6 +353,7 @@
                 gameOver = true;
                 setHighScore();
                 playSound('explode', 110, 0.6);
+                addExplosion(playerX + PLAYER_WIDTH/2, H - 50, true);
             } else {
                 invincibleFrames = 45;
                 playSound('explode', 340, 0.25);
@@ -261,15 +364,17 @@
         function updateGame() {
             if(gameOver || paused) return;
             
-            // Move player
+            // Move player (speed slightly increases with difficulty)
+            let playerSpeed = 6 + Math.floor(difficultyPercent / 25);
             let step = 0;
-            if(moveLeft) step = -7;
-            if(moveRight) step = 7;
+            if(moveLeft) step = -playerSpeed;
+            if(moveRight) step = playerSpeed;
             playerX += step;
             playerX = Math.min(Math.max(playerX, 5), W - PLAYER_WIDTH - 5);
             
-            // Shooting
+            // Shooting with progressive cooldown
             if(shootCooldown > 0) shootCooldown--;
+            let currentShootDelay = Math.max(5, baseShootDelay);
             if(shootRequest && shootCooldown === 0 && !gameOver) {
                 bullets.push({
                     x: playerX + PLAYER_WIDTH/2 - BULLET_W/2,
@@ -277,13 +382,13 @@
                     w: BULLET_W,
                     h: BULLET_H
                 });
-                shootCooldown = SHOOT_DELAY_FRAMES;
+                shootCooldown = currentShootDelay;
                 playSound('shoot', 880, 0.08);
             }
             
             // Update bullets
             for(let i = 0; i < bullets.length; i++) {
-                bullets[i].y -= 7;
+                bullets[i].y -= 8;
                 if(bullets[i].y + bullets[i].h < 0 || bullets[i].y > H) {
                     bullets.splice(i,1);
                     i--;
@@ -321,6 +426,7 @@
                         hit = true;
                         enemies.splice(j,1);
                         score += 10;
+                        totalKills++;
                         updateUI();
                         setHighScore();
                         addExplosion(e.x, e.y);
@@ -341,11 +447,17 @@
                 blink = false;
             }
             
-            // Spawn enemies with dynamic difficulty
+            // Spawn enemies with dynamic delay based on difficulty
             if(enemySpawnCounter <= 0) {
-                spawnEnemy();
-                enemySpawnCounter = enemySpawnDelay;
-                enemySpawnDelay = Math.max(18, 32 - Math.floor(score / 400));
+                // Spawn more enemies at higher difficulty
+                let spawnCount = 1;
+                if(difficultyPercent > 75) spawnCount = 3;
+                else if(difficultyPercent > 50) spawnCount = 2;
+                
+                for(let i = 0; i < spawnCount; i++) {
+                    spawnEnemy();
+                }
+                enemySpawnCounter = currentSpawnDelay;
             } else {
                 enemySpawnCounter--;
             }
@@ -364,7 +476,6 @@
         
         // ========== DRAW EVERYTHING ==========
         function drawStars() {
-            // Animated starfield
             for(let i = 0; i < 200; i++) {
                 let sx = (i * 131) % W;
                 let sy = (i * 253 + Date.now() * 0.2) % H;
@@ -383,7 +494,9 @@
             if(blink && invincibleFrames > 0) return;
             ctx.shadowBlur = 12;
             ctx.shadowColor = "#0ff";
-            ctx.fillStyle = "#3eff9e";
+            // Color changes slightly with difficulty
+            let playerColor = difficultyPercent > 70 ? "#ff6666" : "#3eff9e";
+            ctx.fillStyle = playerColor;
             ctx.beginPath();
             ctx.roundRect(playerX, H - 42, PLAYER_WIDTH, PLAYER_HEIGHT, 8);
             ctx.fill();
@@ -404,14 +517,17 @@
         function drawEnemies() {
             for(let e of enemies) {
                 ctx.shadowBlur = 8;
-                ctx.shadowColor = "red";
-                ctx.fillStyle = "#ff2266";
+                // Enemy color based on difficulty when spawned
+                let difficultyAtSpawn = Math.min(1, (e.killsWhenSpawned || 0) / 80);
+                let enemyColor = difficultyAtSpawn > 0.6 ? "#ff0000" : (difficultyAtSpawn > 0.3 ? "#ff4466" : "#ff2266");
+                ctx.fillStyle = enemyColor;
                 ctx.beginPath();
                 ctx.roundRect(e.x, e.y, e.w, e.h, 10);
                 ctx.fill();
                 ctx.fillStyle = "#ff88aa";
                 ctx.font = "bold 22 monospace";
-                ctx.fillText("👾", e.x + 6, e.y + 22);
+                let emoji = difficultyPercent > 70 ? "👹" : "👾";
+                ctx.fillText(emoji, e.x + 6, e.y + 22);
                 ctx.shadowBlur = 0;
             }
         }
@@ -448,6 +564,9 @@
                 ctx.font = "24px monospace";
                 ctx.fillStyle = "cyan";
                 ctx.fillText("PRESS [R] or click RESTART", W/2 - 160, H/2 + 40);
+                ctx.font = "18px monospace";
+                ctx.fillStyle = "#ffaa44";
+                ctx.fillText(`You defeated ${totalKills} enemies!`, W/2 - 130, H/2 + 90);
             }
         }
         
@@ -480,7 +599,7 @@
             drawPlayer();
             drawUItext();
             ctx.font = "bold 16px monospace";
-            ctx.fillStyle = "#88ccff";
+            ctx.fillStyle = difficultyPercent > 70 ? "#ff6666" : "#88ccff";
             ctx.fillText("⚡ NEON ARMADA ⚡", 20, 40);
         }
         
@@ -555,9 +674,9 @@
         window.addEventListener('keyup', handleKeyUp);
         setupMobile();
         
-        // Start with enemies
-        for(let i = 0; i < 3; i++) spawnEnemy();
-        enemySpawnCounter = 10;
+        // Start with easy enemies
+        for(let i = 0; i < 2; i++) spawnEnemy();
+        enemySpawnCounter = 20;
         
         gameLoop();
     })();
