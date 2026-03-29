@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>⚡ NEON ARMADA - Progressive Difficulty ⚡</title>
+    <title>⚡ KILL = DIFFICULTY - Neon Armada ⚡</title>
     <style>
         * {
             user-select: none;
@@ -17,7 +17,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            font-family: 'Courier New', 'Orbitron', monospace;
+            font-family: 'Courier New', monospace;
             font-weight: bold;
         }
 
@@ -25,21 +25,21 @@
             padding: 20px;
             border-radius: 32px;
             background: rgba(0, 0, 0, 0.4);
-            box-shadow: 0 20px 35px rgba(0,0,0,0.5), inset 0 0 40px rgba(0,255,255,0.1);
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
         }
 
         canvas {
             display: block;
             margin: 0 auto;
             border-radius: 20px;
-            box-shadow: 0 0 0 3px cyan, 0 0 0 6px #0ff3, 0 10px 25px black;
+            box-shadow: 0 0 0 3px cyan, 0 0 0 6px #0ff3;
             cursor: none;
         }
 
         .info-panel {
             display: flex;
             justify-content: space-between;
-            align-items: baseline;
+            align-items: center;
             margin-top: 16px;
             margin-bottom: 10px;
             background: #010418aa;
@@ -48,27 +48,30 @@
             border-radius: 60px;
             border: 1px solid cyan;
             color: #0ff;
-            text-shadow: 0 0 4px #0ff;
             flex-wrap: wrap;
             gap: 10px;
         }
 
         .stats {
             display: flex;
-            gap: 32px;
-            font-size: 1.5rem;
-            letter-spacing: 2px;
+            gap: 25px;
+            font-size: 1.3rem;
         }
 
-        .difficulty-meter {
+        .difficulty-box {
             background: #000000aa;
-            padding: 6px 15px;
+            padding: 5px 15px;
             border-radius: 20px;
-            border-left: 3px solid #ff0;
+            text-align: center;
+        }
+
+        .difficulty-name {
+            font-size: 1.2rem;
+            font-weight: bold;
         }
 
         .difficulty-bar {
-            width: 150px;
+            width: 200px;
             height: 8px;
             background: #333;
             border-radius: 10px;
@@ -79,17 +82,8 @@
         .difficulty-fill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #0f0, #ff0, #f00);
+            background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000);
             transition: width 0.3s;
-            border-radius: 10px;
-        }
-
-        .controls-hint {
-            font-size: 0.75rem;
-            background: #000000aa;
-            padding: 6px 12px;
-            border-radius: 20px;
-            color: #afa;
         }
 
         button {
@@ -98,11 +92,9 @@
             color: cyan;
             font-family: monospace;
             font-weight: bold;
-            font-size: 1rem;
             padding: 4px 12px;
             border-radius: 40px;
             cursor: pointer;
-            transition: 0.1s linear;
         }
 
         button:active {
@@ -112,11 +104,8 @@
         }
 
         @media (max-width: 780px) {
-            .stats { gap: 16px; font-size: 1rem; }
-            .controls-hint { font-size: 0.6rem; }
-            .info-panel { flex-direction: column; align-items: center; }
-            .difficulty-meter { width: 100%; text-align: center; }
-            .difficulty-bar { width: 100%; }
+            .stats { gap: 12px; font-size: 0.9rem; }
+            .difficulty-bar { width: 120px; }
         }
     </style>
 </head>
@@ -124,19 +113,19 @@
 <div>
     <div class="info-panel">
         <div class="stats">
-            <span>💥 SCORE: <span id="scoreValue">0</span></span>
-            <span>🏆 HIGH: <span id="highScoreValue">0</span></span>
-            <span>❤️ LIVES: <span id="livesValue">3</span></span>
-            <span>🔥 KILLS: <span id="killsValue">0</span></span>
+            <span>💥 <span id="scoreValue">0</span></span>
+            <span>🏆 <span id="highScoreValue">0</span></span>
+            <span>❤️ <span id="livesValue">3</span></span>
+            <span>🔪 <span id="killsValue">0</span></span>
         </div>
-        <div class="difficulty-meter">
-            <div>📈 DIFFICULTY: <span id="difficultyLevel">EASY</span></div>
+        <div class="difficulty-box">
+            <div class="difficulty-name" id="difficultyName">🌿 EASY</div>
             <div class="difficulty-bar">
                 <div class="difficulty-fill" id="difficultyFill"></div>
             </div>
         </div>
         <div class="controls-hint">
-            🎮 ← → / A D &nbsp;&nbsp;|&nbsp;&nbsp;🔫 SPACE &nbsp;&nbsp;|&nbsp;&nbsp;⏸️ P
+            ←→ / AD | SPACE | P | R
         </div>
         <button id="restartButton">🔄 RESTART</button>
     </div>
@@ -146,540 +135,374 @@
     </div>
     <div id="mobileControls" style="display: flex; justify-content: center; gap: 20px; margin-top: 16px;">
         <button id="leftBtn" style="font-size: 2rem; padding: 8px 20px;">◀</button>
-        <button id="fireBtn" style="font-size: 2rem; padding: 8px 30px; background:#ff3366; border-color:hotpink;">💥 FIRE</button>
+        <button id="fireBtn" style="font-size: 2rem; padding: 8px 30px; background:#ff3366;">💥</button>
         <button id="rightBtn" style="font-size: 2rem; padding: 8px 20px;">▶</button>
     </div>
 </div>
 
 <script>
-    (function(){
-        // ========== CANVAS SETUP ==========
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        const W = 900, H = 600;
-        
-        // ========== PLAYER ==========
-        const PLAYER_WIDTH = 40;
-        const PLAYER_HEIGHT = 28;
-        let playerX = W/2 - PLAYER_WIDTH/2;
-        let lives = 3;
-        let invincibleFrames = 0;
-        let blink = false;
-        
-        // ========== GAME STATE ==========
-        let score = 0;
-        let totalKills = 0;  // Track enemy kills for difficulty
-        let highScore = localStorage.getItem('neonHighScore') ? parseInt(localStorage.getItem('neonHighScore')) : 0;
-        let gameOver = false;
-        let paused = false;
-        
-        // UI elements
-        const scoreSpan = document.getElementById('scoreValue');
-        const highScoreSpan = document.getElementById('highScoreValue');
-        const livesSpan = document.getElementById('livesValue');
-        const killsSpan = document.getElementById('killsValue');
-        const difficultyLevelSpan = document.getElementById('difficultyLevel');
-        const difficultyFill = document.getElementById('difficultyFill');
-        
-        // ========== PROJECTILES ==========
-        let bullets = [];
-        const BULLET_W = 5, BULLET_H = 12;
-        let shootCooldown = 0;
-        let baseShootDelay = 15;  // Starts slower, gets faster
-        
-        // ========== ENEMIES ==========
-        let enemies = [];
-        const ENEMY_W = 34, ENEMY_H = 28;
-        let enemySpawnCounter = 0;
-        let baseSpawnDelay = 45;  // Starts with fewer enemies
-        let currentSpawnDelay = 45;
-        
-        // ========== PARTICLES ==========
-        let particles = [];
-        
-        // ========== CONTROLS ==========
-        let moveLeft = false, moveRight = false;
-        let shootRequest = false;
-        
-        // ========== DIFFICULTY TRACKING ==========
-        let currentDifficulty = "EASY";
-        let difficultyPercent = 0;
-        
-        // ========== AUDIO ==========
-        let audioCtx = null;
-        function initAudio() {
-            if(audioCtx) return;
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        function playSound(type, freq=880, duration=0.12) {
-            if(!audioCtx) return;
-            const now = audioCtx.currentTime;
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.frequency.value = freq;
-            gain.gain.setValueAtTime(0.15, now);
-            gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
-            if(type === 'shoot') osc.type = 'sawtooth';
-            else if(type === 'explode') osc.type = 'square';
-            else osc.type = 'sine';
-            osc.start();
-            osc.stop(now + duration);
-        }
-        
-        // ========== DIFFICULTY CALCULATION ==========
-        function updateDifficulty() {
-            // Difficulty scales with kills (0 to 50 kills = easy to insane)
-            if(totalKills < 15) {
-                currentDifficulty = "🌿 EASY";
-                difficultyPercent = (totalKills / 15) * 25;
-                baseSpawnDelay = 45 - Math.floor(totalKills / 2);
-                baseShootDelay = 15 - Math.floor(totalKills / 8);
-            } 
-            else if(totalKills < 35) {
-                currentDifficulty = "⚡ MEDIUM";
-                difficultyPercent = 25 + ((totalKills - 15) / 20) * 25;
-                baseSpawnDelay = 38 - Math.floor((totalKills - 15) / 2);
-                baseShootDelay = 12 - Math.floor((totalKills - 15) / 10);
-            }
-            else if(totalKills < 60) {
-                currentDifficulty = "🔥 HARD";
-                difficultyPercent = 50 + ((totalKills - 35) / 25) * 25;
-                baseSpawnDelay = 30 - Math.floor((totalKills - 35) / 3);
-                baseShootDelay = 10 - Math.floor((totalKills - 35) / 12);
-            }
-            else if(totalKills < 100) {
-                currentDifficulty = "💀 INSANE";
-                difficultyPercent = 75 + ((totalKills - 60) / 40) * 25;
-                baseSpawnDelay = 22 - Math.floor((totalKills - 60) / 5);
-                baseShootDelay = 8 - Math.floor((totalKills - 60) / 15);
-            }
-            else {
-                currentDifficulty = "👹 HELL MODE";
-                difficultyPercent = 100;
-                baseSpawnDelay = Math.max(12, 18 - Math.floor((totalKills - 100) / 15));
-                baseShootDelay = Math.max(5, 7 - Math.floor((totalKills - 100) / 25));
-            }
-            
-            // Keep within limits
-            baseSpawnDelay = Math.max(12, Math.min(45, baseSpawnDelay));
-            baseShootDelay = Math.max(5, Math.min(15, baseShootDelay));
-            currentSpawnDelay = baseSpawnDelay;
-            
-            // Update UI
-            difficultyLevelSpan.innerText = currentDifficulty;
-            difficultyFill.style.width = difficultyPercent + "%";
-            
-            // Change enemy color based on difficulty
-            return difficultyPercent;
-        }
-        
-        // ========== UI HELPERS ==========
-        function updateUI() {
-            scoreSpan.innerText = score;
-            highScoreSpan.innerText = highScore;
-            livesSpan.innerText = lives;
-            killsSpan.innerText = totalKills;
-            updateDifficulty();
-        }
-        
-        function setHighScore() {
-            if(score > highScore) {
-                highScore = score;
-                localStorage.setItem('neonHighScore', highScore);
-                highScoreSpan.innerText = highScore;
-            }
-        }
-        
-        // ========== GAME MECHANICS ==========
-        function spawnEnemy() {
-            let difficultyBonus = Math.min(3, Math.floor(totalKills / 30));
-            let x = Math.random() * (W - ENEMY_W);
-            let speedVariation = 1.5 + Math.random() * 2.5;
-            let baseSpeed = 2.0 + (difficultyPercent / 50);
-            
-            enemies.push({
-                x: x,
-                y: -ENEMY_H,
-                w: ENEMY_W,
-                h: ENEMY_H,
-                speedY: baseSpeed + (Math.random() * speedVariation),
-                killsWhenSpawned: totalKills  // Track difficulty at spawn time
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = 900, H = 600;
+    
+    // ============ GAME STATE ============
+    let playerX = W/2 - 20;
+    let lives = 3;
+    let score = 0;
+    let kills = 0;  // THIS DRIVES DIFFICULTY
+    let highScore = localStorage.getItem('highScore') || 0;
+    let gameOver = false;
+    let paused = false;
+    let invincibleFrames = 0;
+    
+    // ============ BULLETS ============
+    let bullets = [];
+    let shootCooldown = 0;
+    
+    // ============ ENEMIES ============
+    let enemies = [];
+    let spawnCounter = 0;
+    
+    // ============ PARTICLES ============
+    let particles = [];
+    
+    // ============ CONTROLS ============
+    let moveLeft = false, moveRight = false;
+    let shoot = false;
+    
+    // ============ DIFFICULTY (based on KILLS) ============
+    function getDifficulty() {
+        if (kills < 10) return { name: "🌿 EASY", color: "#0f0", spawnDelay: 45, enemySpeed: 2.0, shootDelay: 14, spawnCount: 1 };
+        if (kills < 25) return { name: "⚡ MEDIUM", color: "#ff0", spawnDelay: 35, enemySpeed: 2.8, shootDelay: 12, spawnCount: 1 };
+        if (kills < 45) return { name: "🔥 HARD", color: "#f80", spawnDelay: 28, enemySpeed: 3.5, shootDelay: 10, spawnCount: 2 };
+        if (kills < 70) return { name: "💀 INSANE", color: "#f00", spawnDelay: 22, enemySpeed: 4.2, shootDelay: 8, spawnCount: 2 };
+        return { name: "👹 HELL", color: "#f0f", spawnDelay: 18, enemySpeed: 5.0, shootDelay: 6, spawnCount: 3 };
+    }
+    
+    let currentDiff = getDifficulty();
+    
+    function updateDifficultyUI() {
+        currentDiff = getDifficulty();
+        document.getElementById('difficultyName').innerHTML = currentDiff.name;
+        let percent = Math.min(100, (kills / 100) * 100);
+        document.getElementById('difficultyFill').style.width = percent + "%";
+        document.getElementById('killsValue').innerText = kills;
+    }
+    
+    // ============ UI UPDATE ============
+    function updateUI() {
+        document.getElementById('scoreValue').innerText = score;
+        document.getElementById('highScoreValue').innerText = highScore;
+        document.getElementById('livesValue').innerText = lives;
+        updateDifficultyUI();
+    }
+    
+    // ============ GAME MECHANICS ============
+    function spawnEnemy() {
+        let diff = getDifficulty();
+        let x = Math.random() * (W - 34);
+        enemies.push({
+            x: x,
+            y: -28,
+            w: 34,
+            h: 28,
+            speedY: diff.enemySpeed + Math.random() * 1.5
+        });
+    }
+    
+    function addExplosion(x, y) {
+        for (let i = 0; i < 15; i++) {
+            particles.push({
+                x: x + Math.random() * 30,
+                y: y + Math.random() * 30,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6 - 2,
+                life: 20,
+                size: 3 + Math.random() * 4
             });
         }
-        
-        function addExplosion(x, y, isBig = false) {
-            let particleCount = isBig ? 20 : 12;
-            for(let i = 0; i < particleCount; i++) {
-                particles.push({
-                    x: x + Math.random() * 30,
-                    y: y + Math.random() * 30,
-                    vx: (Math.random() - 0.5) * (isBig ? 7 : 5),
-                    vy: (Math.random() - 0.5) * (isBig ? 7 : 5) - 1.5,
-                    life: isBig ? 25 : 20,
-                    size: 3 + Math.random() * (isBig ? 6 : 4)
-                });
+    }
+    
+    function resetGame() {
+        gameOver = false;
+        paused = false;
+        lives = 3;
+        score = 0;
+        kills = 0;
+        bullets = [];
+        enemies = [];
+        particles = [];
+        invincibleFrames = 0;
+        playerX = W/2 - 20;
+        updateUI();
+        if (score > highScore) {
+            highScore = score;
+            localStorage.setItem('highScore', highScore);
+        }
+        for (let i = 0; i < 3; i++) spawnEnemy();
+    }
+    
+    function playerHit() {
+        if (invincibleFrames > 0 || gameOver) return;
+        lives--;
+        updateUI();
+        if (lives <= 0) {
+            gameOver = true;
+            if (score > highScore) {
+                highScore = score;
+                localStorage.setItem('highScore', highScore);
             }
-            playSound('explode', isBig ? 150 : 220, isBig ? 0.3 : 0.2);
+        } else {
+            invincibleFrames = 50;
+        }
+    }
+    
+    // ============ UPDATE LOGIC ============
+    function updateGame() {
+        if (gameOver || paused) return;
+        
+        let diff = getDifficulty();
+        
+        // Move player
+        let speed = 7;
+        if (moveLeft) playerX -= speed;
+        if (moveRight) playerX += speed;
+        playerX = Math.min(Math.max(playerX, 5), W - 45);
+        
+        // Shoot
+        if (shootCooldown > 0) shootCooldown--;
+        if (shoot && shootCooldown === 0 && !gameOver) {
+            bullets.push({
+                x: playerX + 20 - 2.5,
+                y: H - 55,
+                w: 5,
+                h: 12
+            });
+            shootCooldown = diff.shootDelay;
         }
         
-        function resetGame() {
-            gameOver = false;
-            paused = false;
-            lives = 3;
-            score = 0;
-            totalKills = 0;
-            bullets = [];
-            enemies = [];
-            particles = [];
-            invincibleFrames = 0;
-            shootCooldown = 0;
-            playerX = W/2 - PLAYER_WIDTH/2;
-            baseSpawnDelay = 45;
-            currentSpawnDelay = 45;
-            baseShootDelay = 15;
-            updateUI();
-            setHighScore();
-            // Spawn initial enemies (easier start)
-            for(let i = 0; i < 2; i++) spawnEnemy();
-        }
-        
-        function playerHit() {
-            if(invincibleFrames > 0 || gameOver) return;
-            lives--;
-            updateUI();
-            if(lives <= 0) {
-                gameOver = true;
-                setHighScore();
-                playSound('explode', 110, 0.6);
-                addExplosion(playerX + PLAYER_WIDTH/2, H - 50, true);
-            } else {
-                invincibleFrames = 45;
-                playSound('explode', 340, 0.25);
+        // Update bullets
+        for (let i = 0; i < bullets.length; i++) {
+            bullets[i].y -= 8;
+            if (bullets[i].y + bullets[i].h < 0 || bullets[i].y > H) {
+                bullets.splice(i, 1);
+                i--;
             }
         }
         
-        // ========== UPDATE LOGIC ==========
-        function updateGame() {
-            if(gameOver || paused) return;
-            
-            // Move player (speed slightly increases with difficulty)
-            let playerSpeed = 6 + Math.floor(difficultyPercent / 25);
-            let step = 0;
-            if(moveLeft) step = -playerSpeed;
-            if(moveRight) step = playerSpeed;
-            playerX += step;
-            playerX = Math.min(Math.max(playerX, 5), W - PLAYER_WIDTH - 5);
-            
-            // Shooting with progressive cooldown
-            if(shootCooldown > 0) shootCooldown--;
-            let currentShootDelay = Math.max(5, baseShootDelay);
-            if(shootRequest && shootCooldown === 0 && !gameOver) {
-                bullets.push({
-                    x: playerX + PLAYER_WIDTH/2 - BULLET_W/2,
-                    y: H - 55,
-                    w: BULLET_W,
-                    h: BULLET_H
-                });
-                shootCooldown = currentShootDelay;
-                playSound('shoot', 880, 0.08);
+        // Update enemies
+        for (let i = 0; i < enemies.length; i++) {
+            enemies[i].y += enemies[i].speedY;
+            if (enemies[i].y > H + 100) {
+                enemies.splice(i, 1);
+                i--;
+                continue;
             }
             
-            // Update bullets
-            for(let i = 0; i < bullets.length; i++) {
-                bullets[i].y -= 8;
-                if(bullets[i].y + bullets[i].h < 0 || bullets[i].y > H) {
-                    bullets.splice(i,1);
+            // Enemy collision with player
+            if (invincibleFrames === 0 && !gameOver &&
+                playerX < enemies[i].x + enemies[i].w &&
+                playerX + 40 > enemies[i].x &&
+                H - 45 < enemies[i].y + enemies[i].h) {
+                playerHit();
+                addExplosion(enemies[i].x, enemies[i].y);
+                enemies.splice(i, 1);
+                i--;
+            }
+        }
+        
+        // Bullet collision with enemies
+        for (let i = 0; i < bullets.length; i++) {
+            for (let j = 0; j < enemies.length; j++) {
+                if (bullets[i].x < enemies[j].x + enemies[j].w &&
+                    bullets[i].x + bullets[i].w > enemies[j].x &&
+                    bullets[i].y < enemies[j].y + enemies[j].h &&
+                    bullets[i].y + bullets[i].h > enemies[j].y) {
+                    
+                    bullets.splice(i, 1);
+                    enemies.splice(j, 1);
+                    score += 10;
+                    kills++;  // KILL INCREASES DIFFICULTY
+                    updateUI();
+                    addExplosion(enemies[j]?.x || 0, enemies[j]?.y || 0);
                     i--;
-                }
-            }
-            
-            // Update enemies & collision
-            for(let i = 0; i < enemies.length; i++) {
-                const e = enemies[i];
-                e.y += e.speedY;
-                if(e.y > H + 100) {
-                    enemies.splice(i,1);
-                    i--;
-                    continue;
-                }
-                // Enemy vs player collision
-                if(!gameOver && invincibleFrames === 0 && 
-                   playerX < e.x + e.w && playerX + PLAYER_WIDTH > e.x &&
-                   H - 45 < e.y + e.h && H - 25 > e.y) {
-                    playerHit();
-                    addExplosion(e.x, e.y);
-                    enemies.splice(i,1);
-                    i--;
-                }
-            }
-            
-            // Bullet vs enemy collision
-            for(let i = 0; i < bullets.length; i++) {
-                const b = bullets[i];
-                let hit = false;
-                for(let j = 0; j < enemies.length; j++) {
-                    const e = enemies[j];
-                    if(b.x < e.x + e.w && b.x + b.w > e.x && 
-                       b.y < e.y + e.h && b.y + b.h > e.y) {
-                        hit = true;
-                        enemies.splice(j,1);
-                        score += 10;
-                        totalKills++;
-                        updateUI();
-                        setHighScore();
-                        addExplosion(e.x, e.y);
-                        break;
-                    }
-                }
-                if(hit) {
-                    bullets.splice(i,1);
-                    i--;
-                }
-            }
-            
-            // Invincibility frames
-            if(invincibleFrames > 0) {
-                invincibleFrames--;
-                blink = Math.floor(Date.now() / 30) % 4 < 2;
-            } else {
-                blink = false;
-            }
-            
-            // Spawn enemies with dynamic delay based on difficulty
-            if(enemySpawnCounter <= 0) {
-                // Spawn more enemies at higher difficulty
-                let spawnCount = 1;
-                if(difficultyPercent > 75) spawnCount = 3;
-                else if(difficultyPercent > 50) spawnCount = 2;
-                
-                for(let i = 0; i < spawnCount; i++) {
-                    spawnEnemy();
-                }
-                enemySpawnCounter = currentSpawnDelay;
-            } else {
-                enemySpawnCounter--;
-            }
-            
-            // Update particles
-            for(let i = 0; i < particles.length; i++) {
-                particles[i].x += particles[i].vx;
-                particles[i].y += particles[i].vy;
-                particles[i].life--;
-                if(particles[i].life <= 0) {
-                    particles.splice(i,1);
-                    i--;
+                    break;
                 }
             }
         }
         
-        // ========== DRAW EVERYTHING ==========
-        function drawStars() {
-            for(let i = 0; i < 200; i++) {
-                let sx = (i * 131) % W;
-                let sy = (i * 253 + Date.now() * 0.2) % H;
-                ctx.fillStyle = `rgba(255, 240, 200, ${0.3 + Math.sin(Date.now() * 0.002 + i) * 0.2})`;
-                ctx.fillRect(sx, sy, 2, 2);
+        // Invincibility frames
+        if (invincibleFrames > 0) invincibleFrames--;
+        
+        // Spawn enemies
+        if (spawnCounter <= 0) {
+            for (let i = 0; i < diff.spawnCount; i++) {
+                spawnEnemy();
             }
-            for(let i = 0; i < 60; i++) {
-                let sx = (i * 911) % W;
-                let sy = (i * 373 + Date.now() * 0.1) % H;
-                ctx.fillStyle = `cyan`;
-                ctx.fillRect(sx, sy, 1, 2);
-            }
+            spawnCounter = diff.spawnDelay;
+        } else {
+            spawnCounter--;
         }
         
-        function drawPlayer() {
-            if(blink && invincibleFrames > 0) return;
-            ctx.shadowBlur = 12;
-            ctx.shadowColor = "#0ff";
-            // Color changes slightly with difficulty
-            let playerColor = difficultyPercent > 70 ? "#ff6666" : "#3eff9e";
-            ctx.fillStyle = playerColor;
+        // Update particles
+        for (let i = 0; i < particles.length; i++) {
+            particles[i].x += particles[i].vx;
+            particles[i].y += particles[i].vy;
+            particles[i].life--;
+            if (particles[i].life <= 0) {
+                particles.splice(i, 1);
+                i--;
+            }
+        }
+    }
+    
+    // ============ DRAW EVERYTHING ============
+    function drawStars() {
+        for (let i = 0; i < 150; i++) {
+            let x = (i * 131) % W;
+            let y = (i * 253 + Date.now() * 0.1) % H;
+            ctx.fillStyle = `rgba(255,255,200,${0.3 + Math.sin(Date.now() * 0.003 + i) * 0.2})`;
+            ctx.fillRect(x, y, 2, 2);
+        }
+    }
+    
+    function drawPlayer() {
+        if (invincibleFrames > 0 && Math.floor(Date.now() / 50) % 2 === 0) return;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = "#0ff";
+        ctx.fillStyle = "#3eff9e";
+        ctx.beginPath();
+        ctx.roundRect(playerX, H - 42, 40, 28, 8);
+        ctx.fill();
+        ctx.fillStyle = "white";
+        ctx.beginPath();
+        ctx.moveTo(playerX + 20, H - 52);
+        ctx.lineTo(playerX + 14, H - 42);
+        ctx.lineTo(playerX + 26, H - 42);
+        ctx.fill();
+        ctx.fillStyle = "#ff44aa";
+        ctx.fillRect(playerX + 5, H - 36, 8, 12);
+        ctx.fillRect(playerX + 27, H - 36, 8, 12);
+        ctx.shadowBlur = 0;
+    }
+    
+    function drawEnemies() {
+        let diff = getDifficulty();
+        for (let e of enemies) {
+            ctx.shadowBlur = 6;
+            ctx.fillStyle = diff.color;
             ctx.beginPath();
-            ctx.roundRect(playerX, H - 42, PLAYER_WIDTH, PLAYER_HEIGHT, 8);
+            ctx.roundRect(e.x, e.y, e.w, e.h, 10);
             ctx.fill();
             ctx.fillStyle = "white";
-            ctx.beginPath();
-            ctx.moveTo(playerX + PLAYER_WIDTH/2, H - 52);
-            ctx.lineTo(playerX + PLAYER_WIDTH/2 - 6, H - 42);
-            ctx.lineTo(playerX + PLAYER_WIDTH/2 + 6, H - 42);
-            ctx.fill();
-            ctx.fillStyle = "#ff44aa";
-            ctx.beginPath();
-            ctx.roundRect(playerX + 5, H - 36, 8, 12, 3);
-            ctx.roundRect(playerX + PLAYER_WIDTH - 13, H - 36, 8, 12, 3);
-            ctx.fill();
+            ctx.font = "bold 20px monospace";
+            ctx.fillText("👾", e.x + 7, e.y + 22);
             ctx.shadowBlur = 0;
         }
-        
-        function drawEnemies() {
-            for(let e of enemies) {
-                ctx.shadowBlur = 8;
-                // Enemy color based on difficulty when spawned
-                let difficultyAtSpawn = Math.min(1, (e.killsWhenSpawned || 0) / 80);
-                let enemyColor = difficultyAtSpawn > 0.6 ? "#ff0000" : (difficultyAtSpawn > 0.3 ? "#ff4466" : "#ff2266");
-                ctx.fillStyle = enemyColor;
-                ctx.beginPath();
-                ctx.roundRect(e.x, e.y, e.w, e.h, 10);
-                ctx.fill();
-                ctx.fillStyle = "#ff88aa";
-                ctx.font = "bold 22 monospace";
-                let emoji = difficultyPercent > 70 ? "👹" : "👾";
-                ctx.fillText(emoji, e.x + 6, e.y + 22);
-                ctx.shadowBlur = 0;
-            }
+    }
+    
+    function drawBullets() {
+        for (let b of bullets) {
+            ctx.fillStyle = "#ffff40";
+            ctx.fillRect(b.x, b.y, b.w, b.h);
         }
-        
-        function drawBullets() {
-            for(let b of bullets) {
-                ctx.fillStyle = "#ffff40";
-                ctx.shadowBlur = 8;
-                ctx.fillRect(b.x, b.y, b.w, b.h);
-            }
-            ctx.shadowBlur = 0;
+    }
+    
+    function drawParticles() {
+        for (let p of particles) {
+            ctx.fillStyle = `rgba(255, 80, 40, ${p.life / 20})`;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
         }
-        
-        function drawParticles() {
-            for(let p of particles) {
-                ctx.fillStyle = `rgba(255, 80, 40, ${p.life / 20})`;
-                ctx.fillRect(p.x, p.y, p.size, p.size);
-            }
+    }
+    
+    function drawUI() {
+        if (paused && !gameOver) {
+            ctx.font = "40px monospace";
+            ctx.fillStyle = "#0ff";
+            ctx.fillText("PAUSED", W/2 - 80, H/2);
         }
-        
-        function drawUItext() {
-            if(paused && !gameOver) {
-                ctx.font = "36px monospace";
-                ctx.shadowBlur = 0;
-                ctx.fillStyle = "#0ff";
-                ctx.shadowColor = "black";
-                ctx.fillText("⏸ PAUSED", W/2 - 100, H/2);
-            }
-            if(gameOver) {
-                ctx.font = "44px 'Courier New'";
-                ctx.fillStyle = "#ff3366";
-                ctx.shadowBlur = 4;
-                ctx.fillText("💀 MISSION FAILED 💀", W/2 - 230, H/2 - 40);
-                ctx.font = "24px monospace";
-                ctx.fillStyle = "cyan";
-                ctx.fillText("PRESS [R] or click RESTART", W/2 - 160, H/2 + 40);
-                ctx.font = "18px monospace";
-                ctx.fillStyle = "#ffaa44";
-                ctx.fillText(`You defeated ${totalKills} enemies!`, W/2 - 130, H/2 + 90);
-            }
+        if (gameOver) {
+            ctx.font = "42px monospace";
+            ctx.fillStyle = "#f33";
+            ctx.fillText("GAME OVER", W/2 - 130, H/2 - 40);
+            ctx.font = "20px monospace";
+            ctx.fillStyle = "#0ff";
+            ctx.fillText("Press R to restart", W/2 - 100, H/2 + 30);
         }
-        
-        // Helper for rounded rectangles
-        if(!CanvasRenderingContext2D.prototype.roundRect) {
-            CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
-                if (w < 2 * r) r = w / 2;
-                if (h < 2 * r) r = h / 2;
-                this.moveTo(x + r, y);
-                this.lineTo(x + w - r, y);
-                this.quadraticCurveTo(x + w, y, x + w, y + r);
-                this.lineTo(x + w, y + h - r);
-                this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-                this.lineTo(x + r, y + h);
-                this.quadraticCurveTo(x, y + h, x, y + h - r);
-                this.lineTo(x, y + r);
-                this.quadraticCurveTo(x, y, x + r, y);
-                return this;
-            };
-        }
-        
-        function draw() {
-            ctx.clearRect(0, 0, W, H);
-            ctx.fillStyle = "#010514";
-            ctx.fillRect(0, 0, W, H);
-            drawStars();
-            drawEnemies();
-            drawBullets();
-            drawParticles();
-            drawPlayer();
-            drawUItext();
-            ctx.font = "bold 16px monospace";
-            ctx.fillStyle = difficultyPercent > 70 ? "#ff6666" : "#88ccff";
-            ctx.fillText("⚡ NEON ARMADA ⚡", 20, 40);
-        }
-        
-        // ========== GAME LOOP ==========
-        function gameLoop() {
-            updateGame();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-        
-        // ========== EVENT HANDLERS ==========
-        function handleKeyDown(e) {
-            let code = e.code;
-            if(code === 'Space') {
-                e.preventDefault();
-                shootRequest = true;
-            }
-            if(code === 'KeyP') {
-                if(!gameOver) paused = !paused;
-                e.preventDefault();
-            }
-            if(code === 'KeyR') {
-                resetGame();
-                e.preventDefault();
-            }
-            if(code === 'ArrowLeft' || code === 'KeyA') moveLeft = true;
-            if(code === 'ArrowRight' || code === 'KeyD') moveRight = true;
-        }
-        
-        function handleKeyUp(e) {
-            let code = e.code;
-            if(code === 'Space') shootRequest = false;
-            if(code === 'ArrowLeft' || code === 'KeyA') moveLeft = false;
-            if(code === 'ArrowRight' || code === 'KeyD') moveRight = false;
-        }
-        
-        function setupMobile() {
-            const leftBtn = document.getElementById('leftBtn');
-            const rightBtn = document.getElementById('rightBtn');
-            const fireBtn = document.getElementById('fireBtn');
-            if(!leftBtn) return;
-            
-            leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveLeft = true; });
-            leftBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveLeft = false; });
-            leftBtn.addEventListener('mousedown', () => moveLeft = true);
-            leftBtn.addEventListener('mouseup', () => moveLeft = false);
-            
-            rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); moveRight = true; });
-            rightBtn.addEventListener('touchend', (e) => { e.preventDefault(); moveRight = false; });
-            rightBtn.addEventListener('mousedown', () => moveRight = true);
-            rightBtn.addEventListener('mouseup', () => moveRight = false);
-            
-            fireBtn.addEventListener('touchstart', (e) => { e.preventDefault(); shootRequest = true; });
-            fireBtn.addEventListener('touchend', (e) => { e.preventDefault(); shootRequest = false; });
-            fireBtn.addEventListener('mousedown', () => shootRequest = true);
-            fireBtn.addEventListener('mouseup', () => shootRequest = false);
-        }
-        
-        // ========== INITIALIZATION ==========
-        document.getElementById('restartButton').addEventListener('click', () => { resetGame(); });
-        highScoreSpan.innerText = highScore;
-        updateUI();
-        
-        // Enable audio on first click
-        function enableAudio() {
-            initAudio();
-            document.body.removeEventListener('click', enableAudio);
-        }
-        document.body.addEventListener('click', enableAudio);
-        
-        window.addEventListener('keydown', handleKeyDown);
-        window.addEventListener('keyup', handleKeyUp);
-        setupMobile();
-        
-        // Start with easy enemies
-        for(let i = 0; i < 2; i++) spawnEnemy();
-        enemySpawnCounter = 20;
-        
-        gameLoop();
-    })();
+    }
+    
+    // Helper
+    if (!CanvasRenderingContext2D.prototype.roundRect) {
+        CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            this.moveTo(x + r, y);
+            this.lineTo(x + w - r, y);
+            this.quadraticCurveTo(x + w, y, x + w, y + r);
+            this.lineTo(x + w, y + h - r);
+            this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+            this.lineTo(x + r, y + h);
+            this.quadraticCurveTo(x, y + h, x, y + h - r);
+            this.lineTo(x, y + r);
+            this.quadraticCurveTo(x, y, x + r, y);
+            return this;
+        };
+    }
+    
+    function draw() {
+        ctx.fillStyle = "#010514";
+        ctx.fillRect(0, 0, W, H);
+        drawStars();
+        drawEnemies();
+        drawBullets();
+        drawParticles();
+        drawPlayer();
+        drawUI();
+    }
+    
+    // ============ GAME LOOP ============
+    function gameLoop() {
+        updateGame();
+        draw();
+        requestAnimationFrame(gameLoop);
+    }
+    
+    // ============ CONTROLS ============
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') { shoot = true; e.preventDefault(); }
+        if (e.code === 'KeyP') { paused = !paused; e.preventDefault(); }
+        if (e.code === 'KeyR') { resetGame(); e.preventDefault(); }
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') moveLeft = true;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') moveRight = true;
+    });
+    
+    document.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') shoot = false;
+        if (e.code === 'ArrowLeft' || e.code === 'KeyA') moveLeft = false;
+        if (e.code === 'ArrowRight' || e.code === 'KeyD') moveRight = false;
+    });
+    
+    // Mobile
+    document.getElementById('leftBtn').onmousedown = () => moveLeft = true;
+    document.getElementById('leftBtn').onmouseup = () => moveLeft = false;
+    document.getElementById('rightBtn').onmousedown = () => moveRight = true;
+    document.getElementById('rightBtn').onmouseup = () => moveRight = false;
+    document.getElementById('fireBtn').onmousedown = () => shoot = true;
+    document.getElementById('fireBtn').onmouseup = () => shoot = false;
+    
+    document.getElementById('leftBtn').ontouchstart = (e) => { e.preventDefault(); moveLeft = true; };
+    document.getElementById('leftBtn').ontouchend = () => moveLeft = false;
+    document.getElementById('rightBtn').ontouchstart = (e) => { e.preventDefault(); moveRight = true; };
+    document.getElementById('rightBtn').ontouchend = () => moveRight = false;
+    document.getElementById('fireBtn').ontouchstart = (e) => { e.preventDefault(); shoot = true; };
+    document.getElementById('fireBtn').ontouchend = () => shoot = false;
+    
+    document.getElementById('restartButton').onclick = () => resetGame();
+    
+    // Initialize
+    updateUI();
+    for (let i = 0; i < 3; i++) spawnEnemy();
+    gameLoop();
 </script>
 </body>
 </html>
